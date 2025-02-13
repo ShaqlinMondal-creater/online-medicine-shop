@@ -1,44 +1,56 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container text-center">
-    <h2 class="text-success">🎉 Order Placed Successfully! 🎉</h2>
-    <p>Thank you for shopping with us. Your order has been placed successfully.</p>
 
-    <div class="card mx-auto mt-4" style="max-width: 500px;">
+<div class="container text-center">
+    <h2 class="text-success mt-4"><i class="fas fa-check-circle"></i> Order Placed Successfully!</h2>
+    <p class="lead">Thank you for your purchase. Your order has been placed successfully.</p>
+
+    <div class="card shadow-sm mx-auto mt-4" style="max-width: 600px;">
         <div class="card-body">
-            <h5 class="card-title">Order Details</h5>
-            <p><strong>Order ID:</strong> <span id="order-id"></span></p>
-            <p><strong>Payment Method:</strong> <span id="payment-method"></span></p>
-            <p><strong>Shipping Type:</strong> <span id="shipping-type"></span></p>
-            <p><strong>Delivery Address:</strong> <span id="address"></span></p>
+            <h4 class="card-title">Order Details</h4>
             <hr>
-            <h4>Total: <strong>₨. <span id="grand-total">0.00</span></strong></h4>
+
+            @if(session('order_details'))
+                @php
+                    $order = session('order_details');
+                @endphp
+
+                <p><strong>Order ID:</strong> {{ $order['order_id'] }}</p>
+                <p><strong>Name:</strong> {{ $order['name'] }}</p>
+                <p><strong>Email:</strong> {{ $order['email'] }}</p>
+                <p><strong>Mobile:</strong> {{ $order['mobile'] }}</p>
+                <p><strong>Address:</strong> {{ $order['address'] }}</p>
+                <p><strong>Shipping:</strong> {{ ucfirst($order['shipping']) }}</p>
+                <p><strong>Payment Method:</strong> {{ ucfirst($order['payment']) }}</p>
+
+                <hr>
+                <h5>Order Summary</h5>
+                <p><strong>Subtotal:</strong> ₨{{ number_format($order['subtotal'], 2) }}</p>
+                <p><strong>Tax (18%):</strong> ₨{{ number_format($order['tax'], 2) }}</p>
+                <p><strong>Shipping Fee:</strong> ₨{{ number_format($order['shipping_fee'], 2) }}</p>
+                <p><strong>Payment Fee:</strong> ₨{{ number_format($order['payment_fee'], 2) }}</p>
+                <h4><strong>Grand Total:</strong> ₨{{ number_format($order['grand_total'], 2) }}</h4>
+
+                <hr>
+                <h5>Ordered Products</h5>
+                <ul class="list-group">
+                    @foreach($order['products'] as $product)
+                        <li class="list-group-item">
+                            <strong>Product ID:</strong> {{ $product['product_id'] }} <br>
+                            <strong>Quantity:</strong> {{ $product['quantity'] }} <br>
+                            <strong>Price:</strong> ₨{{ number_format($product['price'], 2) }}
+                        </li>
+                    @endforeach
+                </ul>
+
+            @else
+                <p class="text-danger">Order details not found!</p>
+            @endif
+
+            <a href="{{ url('/') }}" class="btn btn-primary mt-3">Continue Shopping</a>
         </div>
     </div>
-
-    <a href="/" class="btn btn-primary mt-3">🏠 Go to Home</a>
-    <a href="/my-orders" class="btn btn-success mt-3">📦 View Orders</a>
 </div>
 
-<script>
-    $(document).ready(function () {
-        let orderData = localStorage.getItem('latestOrder');
-        
-        if (orderData) {
-            orderData = JSON.parse(orderData);
-            $("#order-id").text(orderData.order_id);
-            $("#payment-method").text(orderData.payment_method);
-            $("#shipping-type").text(orderData.shipping_type);
-            $("#address").text(orderData.address);
-            $("#grand-total").text(orderData.total.toFixed(2));
-
-            // ✅ Clear local storage after showing the order summary
-            localStorage.removeItem('latestOrder');
-        } else {
-            $("body").html("<h2 class='text-center text-danger'>No order found! 🚫</h2><p class='text-center'><a href='/'>Go back to Home</a></p>");
-        }
-    });
-</script>
 @endsection
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

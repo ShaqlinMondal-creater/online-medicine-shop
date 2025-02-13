@@ -9,6 +9,7 @@ use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\OrderController;
 
 Route::get('/', function () {
     return view('index'); // Redirecting to the index page for now
@@ -91,9 +92,10 @@ Route::get('/checkout', [CheckoutController::class, 'showCheckout'])->name('chec
 
 
 
-// Route::post('/place-order', [CartController::class, 'placeOrder']);
+// Order Routes
+Route::post('/place-order', [OrderController::class, 'placeOrder'])->name('place.order');
 Route::get('/order-success', function () {
-    return view('order-success');
+    return view('order-success'); 
 });
 
 
