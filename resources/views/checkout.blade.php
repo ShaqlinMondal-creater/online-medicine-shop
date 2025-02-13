@@ -176,12 +176,19 @@
                 type: "POST",
                 data: JSON.stringify(orderData),
                 contentType: "application/json",
-                headers: { "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content") },
+                headers: {
+                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
+                },
                 success: function(response) {
                     alert("Order placed successfully! Order ID: " + response.order_id);
-                    window.location.href = "/order-success?order_id=" + response.order_id;
+                    window.location.href = response.redirect_url; // ✅ Redirect to success page
+                },
+                error: function(xhr, status, error) {
+                    console.log("Order error:", xhr.responseText);
+                    alert("Something went wrong! Please check the console.");
                 }
             });
+
 
         });
 

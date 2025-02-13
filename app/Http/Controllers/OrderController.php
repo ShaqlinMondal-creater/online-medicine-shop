@@ -27,21 +27,40 @@ class OrderController extends Controller
             'grand_total' => 'required|numeric',
             'products' => 'required|array',
         ]);
-
-        // ✅ Define correct file path
-        $filePath = storage_path('app/orders.json'); 
-
-        // ✅ Check if orders.json exists and load existing orders
-        if (file_exists($filePath)) {
-            $orders = json_decode(file_get_contents($filePath), true);
+    
+        // Define file paths
+        $orderFilePath = storage_path('app/orders.json');
+        $cartFilePath = storage_path('app/cart.json');
+    
+        // Load existing orders
+        if (file_exists($orderFilePath)) {
+            $orders = json_decode(file_get_contents($orderFilePath), true);
         } else {
             $orders = [];
         }
-
-        // ✅ Generate unique order ID (Auto-increment)
-        $newOrderId = count($orders) > 0 ? end($orders)['order_id'] + 1 : 1;
-
-        // ✅ Create order data
+    
+        // ✅ Generate Order ID in format: DDMMYYYY + Increment
+        $today = date('dmY'); // Example: 1322025 (13-Feb-2025)
+        $latestOrderId = 0;
+    
+        if (!empty($orders)) {
+            // Get last order ID and check if it matches today's format
+            $lastOrder = end($orders);
+            $lastOrderId = $lastOrder['order_id'];
+    
+            if (strpos($lastOrderId, $today) === 0) {
+                $latestOrderId = intval(substr($lastOrderId, 8)) + 1; // Extract last digits and increment
+            } else {
+                $latestOrderId = 1; // Start fresh for a new day
+            }
+        } else {
+            $latestOrderId = 1;
+        }
+    
+        // Final Order ID
+        $newOrderId = $today . $latestOrderId;
+    
+        // Create order data
         $orderData = [
             'order_id' => $newOrderId,
             'user_id' => $request->user_id,
@@ -58,22 +77,38 @@ class OrderController extends Controller
             'payment_fee' => number_format($request->payment_fee, 2),
             'grand_total' => number_format($request->grand_total, 2),
             'products' => $request->products,
-            'order_date' => Carbon::now()->toDateTimeString(),
+            'order_date' => now()->toDateTimeString(),
         ];
-
-        // ✅ Append new order to the array
+    
+        // Append new order to the array
         $orders[] = $orderData;
-
-        // ✅ Try writing to orders.json and check if successful
-        if (file_put_contents($filePath, json_encode($orders, JSON_PRETTY_PRINT)) === false) {
+    
+        // ✅ Save updated orders to orders.json
+        if (file_put_contents($orderFilePath, json_encode($orders, JSON_PRETTY_PRINT)) === false) {
             return response()->json(['error' => 'Failed to write to orders.json'], 500);
         }
-
-        // ✅ Redirect user to order-success page with order ID
+    
+        // ✅ Load existing carts and delete the one with cart_id
+        if (file_exists($cartFilePath)) {
+            $carts = json_decode(file_get_contents($cartFilePath), true);
+    
+            // Filter out the cart that matches cart_id
+            $updatedCarts = array_filter($carts, function ($cart) use ($request) {
+                return intval($cart['cart_id']) !== intval($request->cart_id);
+            });
+    
+            // ✅ Save the updated carts back to cart.json (overwrite with only remaining carts)
+            file_put_contents($cartFilePath, json_encode(array_values($updatedCarts), JSON_PRETTY_PRINT));
+        }
+    
+        // ✅ Store order details in session for order-success page
+        session(['order_details' => $orderData]);
+    
         return response()->json([
             'message' => 'Order placed successfully!',
             'order_id' => $newOrderId,
-            'redirect_url' => url("/order-success?order_id={$newOrderId}")
+            'redirect_url' => url("/order-success")
         ]);
     }
+    
 }

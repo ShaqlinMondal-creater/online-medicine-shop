@@ -96,7 +96,7 @@ Route::get('/checkout', [CheckoutController::class, 'showCheckout'])->name('chec
 Route::post('/place-order', [OrderController::class, 'placeOrder'])->name('place.order');
 Route::get('/order-success', function () {
     return view('order-success'); 
-});
+})->name('order.success');
 
 
 // buy now
