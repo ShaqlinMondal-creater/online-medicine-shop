@@ -164,44 +164,93 @@
         });
 
         // ✅ Place Order Handler
+        // $("#checkout-form").submit(function(e) {
+        //     e.preventDefault();
+
+        //     let orderData = {
+        //         user_id: "{{ $loggedInUser['id'] ?? '' }}",
+        //         cart_id: $("#cart_id").val(),
+        //         name: $("#name").val(),
+        //         email: $("#email").val(),
+        //         mobile: $("#mobile").val(),
+        //         address: $("#address").val(),
+        //         shipping: $("#shipping-option").val(),
+        //         payment: $("#payment-option").val(),
+        //         subtotal: $("#subtotal").text(),
+        //         gst: $("#gst").text(),
+        //         shipping_fee: $("#shipping-fee").text(),
+        //         payment_fee: $("#payment-fee").text(),
+        //         grand_total: $("#grand-total").text(),
+        //         products: @json($userCart['products'] ?? [])
+        //     };
+
+        //     console.log("🚀 Placing Order:", orderData);
+
+        //     $.ajax({
+        //         url: "/place-order",
+        //         type: "POST",
+        //         data: JSON.stringify(orderData),
+        //         contentType: "application/json",
+        //         headers: { "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content") },
+        //         success: function(response) {
+        //             alert("✅ Order placed successfully! Order ID: " + response.order_id);
+        //             window.location.href = response.redirect_url;
+        //         },
+        //         error: function(xhr) {
+        //             console.log("❌ Order error:", xhr.responseText);
+        //             alert("Something went wrong! Please try again.");
+        //         }
+        //     });
+        // });
+
         $("#checkout-form").submit(function(e) {
-            e.preventDefault();
+    e.preventDefault();
 
-            let orderData = {
-                user_id: "{{ $loggedInUser['id'] ?? '' }}",
-                cart_id: $("#cart_id").val(),
-                name: $("#name").val(),
-                email: $("#email").val(),
-                mobile: $("#mobile").val(),
-                address: $("#address").val(),
-                shipping: $("#shipping-option").val(),
-                payment: $("#payment-option").val(),
-                subtotal: $("#subtotal").text(),
-                gst: $("#gst").text(),
-                shipping_fee: $("#shipping-fee").text(),
-                payment_fee: $("#payment-fee").text(),
-                grand_total: $("#grand-total").text(),
-                products: @json($userCart['products'] ?? [])
-            };
+    let orderData = {
+        user_id: localStorage.getItem("user_id"),
+        cart_id: localStorage.getItem("cart_id"),
+        name: $("#name").val(),
+        email: $("#email").val(),
+        mobile: $("#mobile").val(),
+        address: $("#address").val(),
+        shipping: $("#shipping-option").val(),
+        payment: $("#payment-option").val(),
+        subtotal: $("#subtotal").text(),
+        gst: $("#gst").text(),
+        shipping_fee: $("#shipping-fee").text(),
+        payment_fee: $("#payment-fee").text(),
+        grand_total: $("#grand-total").text(),
+        products: @json($userCart['products'] ?? [])
+    };
 
-            console.log("🚀 Placing Order:", orderData);
+    console.log("🚀 Placing Order:", orderData);
 
-            $.ajax({
-                url: "/place-order",
-                type: "POST",
-                data: JSON.stringify(orderData),
-                contentType: "application/json",
-                headers: { "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content") },
-                success: function(response) {
-                    alert("✅ Order placed successfully! Order ID: " + response.order_id);
-                    window.location.href = response.redirect_url;
-                },
-                error: function(xhr) {
-                    console.log("❌ Order error:", xhr.responseText);
-                    alert("Something went wrong! Please try again.");
-                }
-            });
-        });
+    $.ajax({
+        url: "{{ route('place.order') }}",
+        type: "POST",
+        data: JSON.stringify(orderData),
+        contentType: "application/json",
+        headers: {
+            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
+        },
+        success: function(response) {
+            alert("✅ Order placed successfully! Order ID: " + response.order_id);
+
+            // ✅ Store Order ID in local storage
+            localStorage.setItem("order_id", response.order_id);
+            
+            // ✅ Clear local storage after order placement
+            localStorage.removeItem("cart_id");
+
+            window.location.href = response.redirect_url; // Redirect to success page
+        },
+        error: function(xhr) {
+            console.log("❌ Order error:", xhr.responseText);
+            alert("Something went wrong! Please try again.");
+        }
+    });
+});
+
     });
 </script>
 

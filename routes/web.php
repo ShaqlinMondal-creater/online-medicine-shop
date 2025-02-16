@@ -11,6 +11,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProceedCheckoutController;
+use App\Http\Controllers\ProfileController;
 
 Route::get('/', function () {
     return view('index'); // Redirecting to the index page for now
@@ -111,6 +112,13 @@ Route::post('/place-order', [OrderController::class, 'placeOrder'])->name('place
 Route::get('/order-success', function () {
     return view('order-success'); 
 })->name('order.success');
+Route::get('/get-order', [OrderController::class, 'getOrder']);
+
+
+// Profile Route
+Route::get('/profile/{userId}', [ProfileController::class, 'showProfile'])->name('profile');
+Route::get('/orders/{userId}', [ProfileController::class, 'getUserOrders'])->name('orders');
+
 
 
 // buy now

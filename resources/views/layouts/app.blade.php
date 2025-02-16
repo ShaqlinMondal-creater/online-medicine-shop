@@ -259,6 +259,7 @@
                 );
 
                 if (activeUser) {
+                    let userId = activeUser.user.id;
                     let userName = activeUser.user.name;
                     let userRole = activeUser.user.role;
                     let authToken = activeUser.auth_token;
@@ -275,7 +276,7 @@
                         `;
                     } else {
                         authLinks.innerHTML = `
-                            <li class="nav-item"><a class="nav-link">Hello, ${userName}</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/profile/${userId}">Hello, ${userName}</a></li>
                             <li class="nav-item"><a class="nav-link" href="/cart"><i class="fas fa-shopping-cart"></i> Cart <span id="cart-count" class="badge bg-danger">0</span></a></li>
                             <li class="nav-item"><a class="nav-link logout-btn" href="javascript:void(0);" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                         `;
