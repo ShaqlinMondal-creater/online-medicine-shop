@@ -118,6 +118,8 @@ Route::get('/get-order', [OrderController::class, 'getOrder']);
 // Profile Route
 Route::get('/profile/{userId}', [ProfileController::class, 'showProfile'])->name('profile');
 Route::get('/orders/{userId}', [ProfileController::class, 'getUserOrders'])->name('orders');
+// ✅ Fetch Cart Count API
+Route::get('/get-cart-count', [CartController::class, 'getCartCount']);
 
 
 

@@ -314,6 +314,35 @@ class CartController extends Controller
     
         return response()->json(["message" => "Cart cleared successfully!"]);
     }
+
+    // ✅ Fetch Cart Product Count
+    public function getCartCount(Request $request)
+    {
+        $cartFilePath = storage_path('app/cart.json');
+    
+        // ✅ Get user ID from request headers
+        $userId = $request->header('X-User-ID');
+    
+        if (!$userId) {
+            return response()->json(["cart_count" => 0]); // ✅ Return 0 if no user ID is provided
+        }
+    
+        // ✅ Load Cart Data
+        $cartData = file_exists($cartFilePath) ? json_decode(file_get_contents($cartFilePath), true) : [];
+    
+        // ✅ Find the correct cart for the user
+        $userCart = collect($cartData)->firstWhere('user_id', $userId);
+    
+        if (!$userCart || empty($userCart['products'])) {
+            return response()->json(["cart_count" => 0]); // ✅ Return 0 if no cart or no products found
+        }
+    
+        // ✅ Count unique product IDs in the cart
+        $cartCount = count($userCart['products']);
+    
+        return response()->json(["cart_count" => $cartCount]);
+    }
+    
     
         
 }

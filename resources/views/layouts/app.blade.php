@@ -294,23 +294,59 @@
     }
 
     // ✅ Fetch Cart Count Function
-    function fetchCartCount() {
-        fetch('/get-cart')
-            .then(response => response.json())
-            .then(cartData => {
-                let cartCount = cartData.length > 0 ? cartData[0].products.length : 0;
-                updateCartCount(cartCount);
-            })
-            .catch(error => console.error('Error fetching cart count:', error));
+    // ✅ Fetch Unique Product Count in Cart
+function fetchCartCount() {
+    let user = JSON.parse(localStorage.getItem("user"));
+    let guestId = localStorage.getItem("guest_id");
+    let userId = user ? user.id : guestId; // Get user ID (logged-in or guest)
+
+    if (!userId) {
+        console.warn("No user ID found. Cart count set to 0.");
+        updateCartCount(0);
+        return;
     }
 
-    // ✅ Update Cart Count in Navbar
-    function updateCartCount(count) {
-        let cartCountSpan = document.getElementById('cart-count');
-        if (cartCountSpan) {
-            cartCountSpan.textContent = count;
-        }
+    console.log("🔍 Fetching Cart Count for User ID:", userId);
+
+    fetch('/get-cart-count', {
+        method: "GET",
+        headers: { "X-User-ID": userId }
+    })
+    .then(response => response.json())
+    .then(data => {
+        let cartCount = data.cart_count || 0;
+        console.log("🛒 Unique Products in Cart:", cartCount);
+        updateCartCount(cartCount);
+    })
+    .catch(error => {
+        console.error("Error fetching cart count:", error);
+        updateCartCount(0); // ✅ Set count to 0 if an error occurs
+    });
+}
+
+// ✅ Update Cart Count in UI
+function updateCartCount(count) {
+    let cartCountElement = document.getElementById("cart-count");
+
+    if (!cartCountElement) {
+        console.warn("Cart count element not found.");
+        return;
     }
+
+    if (count > 0) {
+        cartCountElement.innerText = count;
+        cartCountElement.style.display = "inline-block";
+    } else {
+        cartCountElement.innerText = "0"; // ✅ Show 0 if no products in cart
+        cartCountElement.style.display = "inline-block";
+    }
+}
+
+// ✅ Fetch cart count when the page loads
+document.addEventListener("DOMContentLoaded", function() {
+    fetchCartCount();
+});
+
 
     // ✅ Logout Function
     function logout() {
@@ -350,6 +386,7 @@
             // ✅ Refresh UI and redirect
             checkAuth();
             window.location.replace('/login');
+
         })
         .catch(error => {
             console.error('Logout failed:', error);
