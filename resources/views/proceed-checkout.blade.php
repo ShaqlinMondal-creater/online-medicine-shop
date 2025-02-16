@@ -14,6 +14,7 @@
 
     @if(isset($userCart) && isset($userCart['cart_id']))
         <p><strong>Cart ID:</strong> {{ $userCart['cart_id'] }}</p>
+        <p><strong>Cart ID:</strong> {{ $userCart['user_id'] }}</p>
         <input type="hidden" id="cart_id" name="cart_id" value="{{ $userCart['cart_id'] }}">
     @else
         <p class="text-danger">Cart not found! Ensure you have a valid cart before proceeding.</p>
