@@ -10,6 +10,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ProceedCheckoutController;
 
 Route::get('/', function () {
     return view('index'); // Redirecting to the index page for now
@@ -22,19 +23,36 @@ Route::get('/index', function () {
 Route::get('/login', function () {
     return view('auth.login');
 })->name('login');
+Route::post('/api/store-auth-log', [AuthController::class, 'storeAuthLog']);
+Route::post('/api/logout', [AuthController::class, 'logout']);
+
+Route::get('/auth-log', function () {
+    $authFilePath = storage_path('app/auth.json');
+
+    if (file_exists($authFilePath)) {
+        $data = json_decode(file_get_contents($authFilePath), true);
+        return response()->json(array_values($data)); // ✅ Always return an array
+    }
+
+    return response()->json([], 404); // ✅ Return an empty array if no auth data
+});
+
 
 Route::get('/register', function () {
     return view('auth.register');
 })->name('register');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Admin Dashboard Route
 Route::get('/admin/dashboard', function () {
     return view('admin.dashboard');
 })->name('admin.dashboard');
 
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
 Route::get('/admin/all-data', [AdminController::class, 'showAllData'])->name('admin.all-data');
+// Admin Dashboard
+
+
+
 
 // Separate APIs for Users, Products, and Orders
 // API routes for Products
@@ -65,29 +83,25 @@ Route::get('/about', function () {
     return view('about');
 })->name('about');
 
-Route::get('/auth-log', function () {
-    $authFilePath = storage_path('app/auth.json');
-
-    if (file_exists($authFilePath)) {
-        $data = json_decode(file_get_contents($authFilePath), true);
-        return response()->json(array_values($data)); // ✅ Always return an array
-    }
-
-    return response()->json([], 404); // ✅ Return an empty array if no auth data
-});
 
 
 
 
 
-// cart
-Route::get('/add-to-cart/{id}', [CartController::class, 'addToCart']);
+// Cart Routes
+
+// ✅ Change `add-to-cart/{id}` to accept POST requests
+Route::match(['get', 'post'], '/add-to-cart/{id}', [CartController::class, 'addToCart']);
 Route::get('/buy-now/{id}', [CartController::class, 'buyNow']);
 Route::get('/cart', [CartController::class, 'cart']);
 Route::get('/remove-from-cart/{id}', [CartController::class, 'removeFromCart']);
 Route::get('/clear-cart', [CartController::class, 'clearCart']);
 Route::get('/update-cart/{id}/{action}', [CartController::class, 'updateCart']);
+Route::get('/get-cart', [CartController::class, 'getCart']);
 
+Route::get('/proceed-checkout', [ProceedCheckoutController::class, 'proceedCheckout'])->name('proceed.checkout');
+
+// old one
 Route::get('/checkout', [CheckoutController::class, 'showCheckout'])->name('checkout');
 
 
@@ -100,8 +114,8 @@ Route::get('/order-success', function () {
 
 
 // buy now
-Route::get('/get-cart', [CartController::class, 'getCart']);
-Route::get('/cart', function () {
-    return view('cart');
-});
+
+// Route::get('/cart', function () {
+//     return view('cart');
+// });
 

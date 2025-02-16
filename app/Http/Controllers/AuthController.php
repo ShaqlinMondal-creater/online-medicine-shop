@@ -67,79 +67,100 @@ class AuthController extends Controller
             'email' => 'required|string|email',
             'password' => 'required|string',
         ]);
-
+    
         $users = $this->loadUsers();
         $authFilePath = storage_path('app/auth.json');
-
+    
         foreach ($users as $user) {
             if ($user['email'] === $request->email && $user['password'] === $request->password) {
-                $token = base64_encode($user['email'] . '_token');
+                $authToken = base64_encode($user['email'] . '_token'); // ✅ Change token to auth_token
                 $startDate = now()->format('Y-m-d H:i:s');
-
+    
                 // ✅ Read existing auth data
                 $authData = file_exists($authFilePath) ? json_decode(file_get_contents($authFilePath), true) : [];
-
-                // ✅ Remove previous entry for this user if it exists
-                $authData = array_filter($authData, fn($record) => $record['user_id'] !== $user['id']);
-
-                // ✅ Store new authentication data
-                $authData[] = [
+    
+                // ✅ Save authentication data in new format
+                $authData[$user['id']] = [
                     "user_id" => $user['id'],
-                    "auth_id" => "true",
-                    "token" => $token,
+                    "auth_token" => $authToken, // ✅ Renamed from token
                     "user" => $user,
                     "start-date" => $startDate,
                     "end-time" => null,
                     "message" => "Login successful"
                 ];
-
-                // ✅ Save updated auth data to `auth.json`
+    
+                // ✅ Save to auth.json
                 file_put_contents($authFilePath, json_encode($authData, JSON_PRETTY_PRINT));
-
+    
                 return response()->json([
-                    'token' => $token,
+                    'auth_token' => $authToken, // ✅ Return correct token name
                     'user' => $user,
-                    'message' => 'Login successful',
-                    'auth_log' => $authData
+                    'message' => 'Login successful'
                 ]);
             }
         }
-
+    
         return response()->json(['message' => 'Invalid credentials'], 401);
     }
-
-
     
+    
+    public function storeAuthLog(Request $request)
+    {
+        $authFilePath = storage_path('app/auth.json');
+        $startDate = now()->format('Y-m-d H:i:s');
+    
+        // ✅ Read existing auth data
+        $authData = file_exists($authFilePath) ? json_decode(file_get_contents($authFilePath), true) : [];
+    
+        // ✅ Store authentication log with correct format
+        $authData[$request->user_id] = [
+            "user_id" => $request->user_id,
+            "auth_token" => $request->auth_token, // ✅ Changed token to auth_token
+            "user" => $request->user,
+            "start-date" => $startDate,
+            "end-time" => null,
+            "message" => "Login successful"
+        ];
+    
+        // ✅ Save to auth.json
+        file_put_contents($authFilePath, json_encode($authData, JSON_PRETTY_PRINT));
+    
+        return response()->json(['message' => 'Auth log stored successfully']);
+    }
+    
+
     public function logout(Request $request)
     {
         $authFilePath = storage_path('app/auth.json');
         $endDate = now()->format('Y-m-d H:i:s');
-
+    
         // ✅ Read existing auth data
         if (file_exists($authFilePath)) {
             $authData = json_decode(file_get_contents($authFilePath), true);
-
+    
             if (!is_array($authData)) {
                 return response()->json(['message' => 'Invalid auth.json format'], 500);
             }
-
-            // ✅ Find and update the user's record
-            foreach ($authData as &$record) {
-                if ($record['auth_id'] === "true") { // ✅ Find logged-in user
-                    $record['auth_id'] = "false";
-                    $record['token'] = null;
-                    $record['end-time'] = $endDate;
-                    $record['message'] = "Logged Out";
-                }
+    
+            // ✅ Get user_id from request
+            $userId = $request->user_id;
+    
+            // ✅ Update JSON format correctly
+            if (isset($authData[$userId])) {
+                $authData[$userId]['auth_token'] = null; // ✅ Nullify auth_token
+                $authData[$userId]['end-time'] = $endDate;
+                $authData[$userId]['message'] = "Logged Out";
             }
-
-            // ✅ Save updated auth data before returning response
+    
+            // ✅ Save updated auth.json file
             file_put_contents($authFilePath, json_encode($authData, JSON_PRETTY_PRINT));
         }
-
+    
         return response()->json(['message' => 'Logged out successfully']);
     }
-
+    
+    
+    
     
 
 

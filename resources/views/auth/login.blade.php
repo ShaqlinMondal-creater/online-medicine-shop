@@ -28,27 +28,40 @@
 </div>
 
 <script>
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
         e.preventDefault();
         
         let email = document.getElementById('email').value;
         let password = document.getElementById('password').value;
     
-        fetch('/api/login', { // ✅ Always use /api/login to check users.json
+        fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
         })
         .then(response => response.json())
         .then(data => {
-            if (data.token) {
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user_role', data.user.role);
-    
-                if (data.user.role === 'admin') { // ✅ Now checking from users.json
-                    window.location.href = '/admin/dashboard'; // Redirect Admin
+            if (data.auth_token) { // ✅ Now using auth_token instead of token
+                // ✅ Store user data in localStorage
+                localStorage.setItem('auth_token', data.auth_token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+
+                // ✅ Store auth log in `auth.json`
+                fetch('/api/store-auth-log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: data.user.id,
+                        auth_token: data.auth_token,
+                        user: data.user
+                    })
+                });
+
+                // ✅ Redirect to appropriate dashboard
+                if (data.user.role === 'admin') {
+                    window.location.href = '/admin/dashboard';
                 } else {
-                    window.location.href = '/index'; // Redirect User to Index Page
+                    window.location.href = '/index';
                 }
             } else {
                 alert("Login failed! Please check your credentials.");
@@ -56,7 +69,9 @@
         })
         .catch(error => console.error('Error:', error));
     });
-    </script>
+</script>
+
+
     
     
 @endsection

@@ -1,10 +1,12 @@
 @extends('layouts.app')
 
+@section('title', 'Your Cart')
+
 @section('content')
 <div class="container">
-    <h2 class="cart_have_data">Cart Details</h2>
+    <h2 class="cart_have_data">Your Shopping Cart</h2>
 
-    <!-- ✅ Cart Message (Success/Error) -->
+    <!-- ✅ Cart Message -->
     <div id="cart-message" class="alert" style="display: none;"></div>
 
     <table class="table cart_have_data">
@@ -20,21 +22,18 @@
             </tr>
         </thead>
         <tbody id="cart-items">
-            <!-- Cart Items Will Be Loaded Here Using AJAX -->
+            <!-- ✅ Cart Items Will Be Loaded Here -->
         </tbody>
     </table>
 
-</div>
+    <!-- ✅ Empty Cart Message -->
+    <div id="empty-cart-message" style="display: none;">
+        <h4>Your cart is empty.</h4>
+        <a href="/" class="btn btn-primary">Continue Shopping</a>
+    </div>
 
-
-<!-- ✅ Empty Cart Message (Initially Hidden) -->
-<div id="empty-cart-message">
-    @include('inc/empty_cart')
-</div>
-    
-<div class="container">
     <!-- ✅ Cart Summary -->
-    <div class="text-end stt cart_have_data">
+    <div class="text-end cart_have_data">
         <p class="style">
             <span>Subtotal: </span> 
             <span id="subtotal">₨. 0.00</span>
@@ -49,197 +48,203 @@
         </h5>
     </div>
 
+    <!-- ✅ Cart Buttons -->
     <div class="cart_have_data">
-        <div class="cart_page_button">
-            <a href="javascript:void(0);" class="btn btn-danger" id="clear-cart">Clear Cart</a>
-            <a href="javascript:void(0);" class="btn btn-success" id="proceed-to-checkout">Proceed to Checkout 👍</a>
-        </div>
+        <a href="javascript:void(0);" class="btn btn-danger" id="clear-cart">Clear Cart</a>
+        <a href="javascript:void(0);" class="btn btn-success" id="proceed-to-checkout">Proceed to Checkout 👍</a>
     </div>
 </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        $(document).ready(function () {
-            loadCart(); // ✅ Load cart when page loads
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function () {
+        loadCart(); // ✅ Load cart when page loads
 
-            // ✅ Function to Load Cart Items Using AJAX
-            function loadCart() {
-                $.ajax({
-                    url: "/get-cart",
-                    type: "GET",
-                    success: function (cartData) {
-                        let cartItems = $("#cart-items");
-                        let cartContainer = $(".cart_have_data"); // ✅ Cart Wrapper
-                        let emptyCartMessage = $("#empty-cart-message"); // ✅ Empty Cart Message
-                        let subtotal = 0;
-                        cartItems.html("");
+        function getUserId() {
+            let user = JSON.parse(localStorage.getItem("user"));
+            let guestId = localStorage.getItem("guest_id");
+            return user ? String(user.id) : guestId;
+        }
 
-                        // ✅ Check if cart is empty
-                        if (!Array.isArray(cartData) || cartData.length === 0 || !cartData[0].products || Object.keys(cartData[0].products).length === 0) {
-                            cartContainer.hide(); // ✅ Hide cart details
-                            emptyCartMessage.show(); // ✅ Show empty cart message
-                            $("#subtotal").text("₨. 0.00");
-                            $("#gst").text("₨. 0.00");
-                            $("#grand-total").text("₨. 0.00");
-                            updateCartCount(0);
-                            return;
-                        }
+        function loadCart() {
+            let currentUserId = getUserId();
+            console.log("Fetching cart for User ID:", currentUserId);
 
-                        let cart = cartData[0]; // ✅ Fetch current user's cart
-                        let productsArray = Object.values(cart.products); // ✅ Convert products object to an array
+            $.ajax({
+                url: "/get-cart",
+                type: "GET",
+                headers: { "X-User-ID": currentUserId },
+                success: function (cartData) {
+                    let cartItems = $("#cart-items");
+                    let cartContainer = $(".cart_have_data");
+                    let emptyCartMessage = $("#empty-cart-message");
+                    let subtotal = 0;
+                    cartItems.html("");
 
-                        // ✅ Show cart data and hide empty cart message
-                        cartContainer.show();
-                        emptyCartMessage.hide();
+                    console.log("Fetched Cart Data:", cartData);
 
-                        productsArray.forEach(product => {
-                            let totalPrice = product.quantity * product.price;
-                            subtotal += totalPrice;
+                    let matchedCart = cartData.find(cart => String(cart.user_id) === currentUserId);
 
-                            let row = `<tr>
-                                <td><img src="/products/${product.image}" width="50" onerror="this.onerror=null; this.src='/products/default.jpg';"></td>
-                                <td>${product.name}</td>
-                                <td>${product.sku}</td>
-                                <td>₨. ${product.price}.00</td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary update-qty" data-id="${product.product_id}" data-action="increase">+</button>
-                                    <span class="mx-2">${product.quantity}</span>
-                                    <button class="btn btn-sm btn-outline-primary update-qty" data-id="${product.product_id}" data-action="decrease">-</button>
-                                </td>
-                                <td>₨. ${totalPrice}.00</td>
-                                <td>
-                                    <a href="javascript:void(0);" class="btn btn-danger btn-sm remove-from-cart" data-id="${product.product_id}">Remove</a>
-                                </td>
-                            </tr>`;
-                            cartItems.append(row);
-                        });
-
-                        // ✅ Calculate GST and Grand Total
-                        let gstTax = subtotal * 0.18;
-                        let grandTotal = subtotal + gstTax;
-
-                        $("#subtotal").text(`₨. ${subtotal.toFixed(2)}`);
-                        $("#gst").text(`₨. ${gstTax.toFixed(2)}`);
-                        $("#grand-total").text(`₨. ${grandTotal.toFixed(2)}`);
-
-                        // ✅ Update Cart Count in Navbar
-                        updateCartCount(productsArray.length);
-                    },
-                    error: function (xhr) {
-                        console.error("Error fetching cart:", xhr.responseText);
+                    if (!matchedCart || !matchedCart.products || matchedCart.products.length === 0) {
+                        cartContainer.hide();
+                        emptyCartMessage.show();
+                        $("#subtotal, #gst, #grand-total").text("₨. 0.00");
+                        return;
                     }
-                });
-            }
 
+                    localStorage.setItem("cart_id", matchedCart.cart_id);
+                    cartContainer.show();
+                    emptyCartMessage.hide();
 
-            // ✅ Show Cart Message for Only 5 Seconds
-            function showMessage(message, type = "success") {
-                let messageBox = $("#cart-message");
-                messageBox.removeClass("alert-success alert-danger").addClass(`alert alert-${type}`).text(message).fadeIn();
-                setTimeout(() => {
-                    messageBox.fadeOut();
-                }, 5000); // Hide after 5 seconds
-            }
+                    matchedCart.products.forEach(product => {
+                        let totalPrice = product.quantity * product.price;
+                        subtotal += totalPrice;
 
-            // ✅ Update Quantity Using AJAX
-            $(document).on("click", ".update-qty", function () {
-                let productId = $(this).data("id");
-                let action = $(this).data("action");
+                        let row = `<tr>
+                            <td><img src="/products/${product.image || 'default.jpg'}" width="50"></td>
+                            <td>${product.name}</td>
+                            <td>${product.sku || 'N/A'}</td>
+                            <td>₨. ${product.price}.00</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary update-qty" data-id="${product.product_id}" data-action="increase">+</button>
+                                <span class="mx-2">${product.quantity}</span>
+                                <button class="btn btn-sm btn-outline-primary update-qty" data-id="${product.product_id}" data-action="decrease">-</button>
+                            </td>
+                            <td>₨. ${totalPrice}.00</td>
+                            <td>
+                                <a href="javascript:void(0);" class="btn btn-danger btn-sm remove-from-cart" data-id="${product.product_id}">Remove</a>
+                            </td>
+                        </tr>`;
+                        cartItems.append(row);
+                    });
 
-                $.ajax({
-                    url: "/update-cart/" + productId + "/" + action,
-                    type: "GET",
-                    success: function (response) {
-                        showMessage(response.message);
-                        loadCart(); // Reload cart after quantity update
-                    },
-                    error: function (xhr) {
-                        showMessage("Error updating cart!", "danger");
-                    }
-                });
+                    let gstTax = subtotal * 0.18;
+                    let grandTotal = subtotal + gstTax;
+
+                    $("#subtotal").text(`₨. ${subtotal.toFixed(2)}`);
+                    $("#gst").text(`₨. ${gstTax.toFixed(2)}`);
+                    $("#grand-total").text(`₨. ${grandTotal.toFixed(2)}`);
+                },
+                error: function (xhr) {
+                    console.error("Error fetching cart:", xhr.responseText);
+                }
             });
+        }
 
-            // ✅ Remove Item from Cart Using AJAX
-            $(document).on("click", ".remove-from-cart", function () {
-                let productId = $(this).data("id");
+        $(document).on("click", ".remove-from-cart", function () {
+            let productId = $(this).data("id");
+            let userId = getUserId();
 
-                $.ajax({
-                    url: "/remove-from-cart/" + productId,
-                    type: "GET",
-                    success: function (response) {
-                        showMessage(response.message);
-                        loadCart(); // ✅ Reload cart after item is removed
-                    },
-                    error: function (xhr) {
-                        showMessage("Error removing item!", "danger");
-                    }
-                });
-            });
-
-            // ✅ Clear Entire Cart Using AJAX
-            $("#clear-cart").click(function () {
-                $.ajax({
-                    url: "/clear-cart",
-                    type: "GET",
-                    success: function (response) {
-                        showMessage(response.message);
-                        loadCart(); // Reload cart after clearing
-                    },
-                    error: function (xhr) {
-                        showMessage("Error clearing cart!", "danger");
-                    }
-                });
+            $.ajax({
+                url: "/remove-from-cart/" + productId,
+                type: "GET",
+                headers: { "X-User-ID": userId },
+                success: function (response) {
+                    alert(response.message);
+                    loadCart();
+                },
+                error: function (xhr) {
+                    console.error("Error removing item:", xhr.responseText);
+                }
             });
         });
-    </script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            document.getElementById("proceed-to-checkout").addEventListener("click", function (event) {
-                event.preventDefault(); // ✅ Prevent immediate redirection
-    
-                fetch("/auth-log")
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!Array.isArray(data)) {
-                            console.error("Invalid auth response:", data);
-                            return;
-                        }
-    
-                        let loggedInUser = data.find(user => user.auth_id === "true");
-    
-                        if (loggedInUser) {
-                            window.location.href = "/checkout";
-                        } else {
-                            window.location.href = "/login"; // ✅ Redirect to login if not authenticated
-                        }
-                    })
-                    .catch(error => console.error("Error checking authentication:", error));
+
+        $(document).on("click", ".update-qty", function () {
+            let productId = $(this).data("id");
+            let action = $(this).data("action");
+            let userId = getUserId();
+
+            $.ajax({
+                url: "/update-cart/" + productId + "/" + action,
+                type: "GET",
+                headers: { "X-User-ID": userId },
+                success: function (response) {
+                    alert(response.message);
+                    loadCart();
+                },
+                error: function (xhr) {
+                    console.error("Error updating cart:", xhr.responseText);
+                }
             });
         });
-    </script>
-    
-    
+
+        $("#clear-cart").click(function () {
+            let userId = getUserId();
+
+            $.ajax({
+                url: "/clear-cart",
+                type: "GET",
+                headers: { "X-User-ID": userId },
+                success: function (response) {
+                    alert(response.message);
+                    loadCart();
+                },
+                error: function (xhr) {
+                    console.error("Error clearing cart:", xhr.responseText);
+                }
+            });
+        });
+        
+        $("#proceed-to-checkout").click(function (event) {
+        event.preventDefault();
+
+        let cartId = localStorage.getItem("cart_id");
+        let userId = localStorage.getItem("user_id");
+
+        console.log("🔍 Proceeding to checkout → Cart ID:", cartId, "User ID:", userId);
+
+        if (!cartId || cartId === "null") {
+            alert("⚠️ No Cart ID found! Redirecting to cart...");
+            window.location.href = "/cart";
+            return;
+        }
+
+        if (!userId || userId.startsWith("guest_")) {
+            alert("⚠️ You need to register before proceeding.");
+            window.location.href = "/register";
+            return;
+        }
+
+        window.location.href = `/proceed-checkout?cart_id=${cartId}`;
+    });
+
+              
+    });
+</script>
+
+<script>
+    // ✅ Proceed to Checkout
+        // $("#proceed-to-checkout").click(function () {
+        //     let user = JSON.parse(localStorage.getItem("user"));
+        //     let guestId = localStorage.getItem("guest_id");
+        //     let currentUserId = user ? user.id : guestId;
+
+        //     $.ajax({
+        //         url: "/auth-log",
+        //         type: "GET",
+        //         success: function (authData) {
+        //             let loggedInUser = authData.find(user => user.user_id === currentUserId);
+        //             if (loggedInUser) {
+        //                 window.location.href = "/checkout";
+        //             } else {
+        //                 window.location.href = "/login";
+        //             }
+        //         },
+        //         error: function (xhr) {
+        //             console.error("Error checking authentication:", xhr.responseText);
+        //         }
+        //     });
+        // });  
+</script>
+
+
+
+
+
+
+
+
+
+
+
 @endsection
-
-<style>
-    .style{
-        display: flex;
-        justify-content: space-between;
-        width:66vw;
-    }
-    .stt{
-        border-bottom: 2px solid grey;
-    }
-    .cart_page_button{
-        display: flex;
-        justify-content: space-between;
-        margin: 15px;
-    }
-    .cart_have_data, .cart-message, .empty-cart-message{
-        display:none;
-    }
-    empty-cart-message{
-        display:none;
-    }
-
-</style>

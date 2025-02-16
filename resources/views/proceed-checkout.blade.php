@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Proceed to Checkout')
+
 @section('content')
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
@@ -30,19 +32,19 @@
                         <div class="mb-3">
                             <label for="name" class="form-label">Full Name</label>
                             <input type="text" id="name" class="form-control"
-                                   value="{{ $loggedInUser['user']['name'] ?? '' }}" required>
+                                   value="{{ $loggedInUser['name'] ?? '' }}" required>
                         </div>
 
                         <div class="mb-3">
                             <label for="email" class="form-label">Email</label>
                             <input type="email" id="email" class="form-control"
-                                   value="{{ $loggedInUser['user']['email'] ?? '' }}" required>
+                                   value="{{ $loggedInUser['email'] ?? '' }}" required>
                         </div>
 
                         <div class="mb-3">
                             <label for="mobile" class="form-label">Mobile</label>
                             <input type="text" id="mobile" class="form-control"
-                                   value="{{ $loggedInUser['user']['phone'] ?? '' }}" required>
+                                   value="{{ $loggedInUser['phone'] ?? '' }}" required>
                         </div>
 
                         <div class="mb-3">
@@ -51,24 +53,25 @@
                                    placeholder="Street, City, ZIP" required>
                         </div>
 
+                        <!-- Shipping Options -->
                         <div class="mb-3">
-                            <label for="shipping" class="form-label">Shipping Type</label>
-                            <select id="shipping" class="form-control" required>
-                                <option value="">-Select-</option>
-                                <option value="standard" data-fee="30">Standard Shipping (₨30.00)</option>
-                                <option value="dtdc" data-fee="70">DTDC Shipping (₨70.00 per Kg)</option>
-                                <option value="shiprocket" data-fee="90">Ship Rocket Shipping (₨90.00 per 5Kg)</option>
+                            <label for="shipping-option" class="form-label">Shipping Option</label>
+                            <select id="shipping-option" class="form-control" required>
+                                <option value="">- Select -</option>
+                                <option value="dtdc" data-fee="60">DTDC Shipping (₨60.00 per 5Kg)</option>
+                                <option value="shiprocket" data-fee="50">Ship Rocket (₨50.00)</option>
+                                <option value="free_shipping" data-fee="10">Free Shipping (₨10.00)</option>
                             </select>
                         </div>
 
+                        <!-- Payment Options -->
                         <div class="mb-3">
-                            <label for="payment" class="form-label">Payment Option</label>
-                            <select id="payment" class="form-control" required>
-                                <option value="">-Select-</option>
-                                <option value="cod" data-fee="20">Cash On Delivery (₨20.00)</option>
-                                <option value="upi" data-fee="2">UPI (₨2.00)</option>
-                                <option value="card" data-fee="0">Credit / Debit Card (Free)</option>
-                                <option value="wallet" data-fee="0">Wallet (Free)</option>
+                            <label for="payment-option" class="form-label">Payment Option</label>
+                            <select id="payment-option" class="form-control" required>
+                                <option value="">- Select -</option>
+                                <option value="upi" data-fee="8">UPI Payment (₨8.00)</option>
+                                <option value="cod" data-fee="40">Cash On Delivery (₨40.00)</option>
+                                <option value="credit_card" data-fee="0">Credit / Debit Card (Free)</option>
                             </select>
                         </div>
 
@@ -78,6 +81,7 @@
             </div>
         </div>
 
+        <!-- Order Summary -->
         <div class="col-md-4">
             <div class="card shadow-sm">
                 <div class="card-body">
@@ -96,7 +100,7 @@
                                 <tbody>
                                     @foreach($userCart['products'] as $product)
                                         <tr>
-                                            <td><strong>{{ $product['product_id'] }}</strong></td>
+                                            <td><strong>{{ $product['name'] }}</strong> ({{ $product['sku'] ?? 'N/A' }})</td>
                                             <td>{{ $product['quantity'] }}</td>
                                             <td>₨{{ number_format($product['price'], 2) }}</td>
                                         </tr>
@@ -110,8 +114,8 @@
                             <span>₨<span id="subtotal">{{ number_format($userCart['Total'], 2) }}</span></span>
                         </div>
                         <div class="d-flex justify-content-between">
-                            <span>Tax (18%):</span>
-                            <span>₨<span id="tax">0.00</span></span>
+                            <span>GST (18%):</span>
+                            <span>₨<span id="gst">0.00</span></span>
                         </div>
                         <div class="d-flex justify-content-between">
                             <span>Shipping:</span>
@@ -134,104 +138,71 @@
 </div>    
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-{{-- <script>
+<script>
     $(document).ready(function() {
         function updateTotal() {
-            let subtotal = parseFloat($("#subtotal").text());
-            let tax = subtotal * 0.18;
-            let shippingFee = parseFloat($("#shipping option:selected").data("fee")) || 0;
-            let paymentFee = parseFloat($("#payment option:selected").data("fee")) || 0;
-            let grandTotal = subtotal + tax + shippingFee + paymentFee;
+            let subtotal = parseFloat($("#subtotal").text()) || 0;
+            let gst = subtotal * 0.18; // 18% GST
+            let shippingFee = parseFloat($("#shipping-option option:selected").data("fee")) || 0;
+            let paymentFee = parseFloat($("#payment-option option:selected").data("fee")) || 0;
+            
+            let grandTotal = subtotal + gst + shippingFee + paymentFee;
 
-            $("#tax").text(tax.toFixed(2));
+            // ✅ Update UI
+            $("#gst").text(gst.toFixed(2));
             $("#shipping-fee").text(shippingFee.toFixed(2));
             $("#payment-fee").text(paymentFee.toFixed(2));
             $("#grand-total").text(grandTotal.toFixed(2));
         }
 
-        $("#shipping, #payment").change(updateTotal);
+        // ✅ Initial calculation on page load
+        updateTotal();
 
+        // ✅ Update total whenever an option changes
+        $("#shipping-option, #payment-option").on("change", function() {
+            updateTotal();
+        });
+
+        // ✅ Place Order Handler
         $("#checkout-form").submit(function(e) {
             e.preventDefault();
 
             let orderData = {
-                user_id: "{{ $loggedInUser['user']['id'] ?? '' }}",
+                user_id: "{{ $loggedInUser['id'] ?? '' }}",
                 cart_id: $("#cart_id").val(),
                 name: $("#name").val(),
                 email: $("#email").val(),
                 mobile: $("#mobile").val(),
                 address: $("#address").val(),
-                shipping: $("#shipping").val(),
-                payment: $("#payment").val(),
+                shipping: $("#shipping-option").val(),
+                payment: $("#payment-option").val(),
                 subtotal: $("#subtotal").text(),
-                tax: $("#tax").text(),
+                gst: $("#gst").text(),
                 shipping_fee: $("#shipping-fee").text(),
                 payment_fee: $("#payment-fee").text(),
                 grand_total: $("#grand-total").text(),
                 products: @json($userCart['products'] ?? [])
             };
 
+            console.log("🚀 Placing Order:", orderData);
+
             $.ajax({
-                url: "{{ route('place.order') }}",
+                url: "/place-order",
                 type: "POST",
                 data: JSON.stringify(orderData),
                 contentType: "application/json",
-                headers: {
-                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
-                },
+                headers: { "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content") },
                 success: function(response) {
-                    alert("Order placed successfully! Order ID: " + response.order_id);
-                    window.location.href = response.redirect_url; // ✅ Redirect to success page
+                    alert("✅ Order placed successfully! Order ID: " + response.order_id);
+                    window.location.href = response.redirect_url;
                 },
-                error: function(xhr, status, error) {
-                    console.log("Order error:", xhr.responseText);
-                    alert("Something went wrong! Please check the console.");
+                error: function(xhr) {
+                    console.log("❌ Order error:", xhr.responseText);
+                    alert("Something went wrong! Please try again.");
                 }
             });
-
-
-        });
-
-        updateTotal();
-    });
-</script> --}}
-{{-- <script>
-    $(document).ready(function () {
-        let cartId = localStorage.getItem("checkout_cart_id");
-        let userId = localStorage.getItem("checkout_user_id");
-
-        if (!cartId || !userId) {
-            console.log("🚨 No Cart ID or User ID found. Redirecting to cart...");
-            window.location.href = "/cart";
-            return;
-        }
-
-        console.log("✅ Checking out Cart ID:", cartId, "User ID:", userId);
-
-        $.ajax({
-            url: "/get-cart",
-            type: "GET",
-            headers: {
-                "X-User-ID": userId,
-                "X-Cart-ID": cartId
-            },
-            success: function (cartData) {
-                if (!cartData || cartData.length === 0) {
-                    console.log("🚨 Cart is empty! Redirecting to cart...");
-                    window.location.href = "/cart";
-                    return;
-                }
-
-                console.log("✅ Cart Data Loaded Successfully:", cartData);
-                $("#checkout-cart-details").text(JSON.stringify(cartData, null, 2));
-            },
-            error: function (xhr) {
-                console.error("❌ Error fetching checkout cart:", xhr.responseText);
-                window.location.href = "/cart";
-            }
         });
     });
-</script> --}}
-
+</script>
 
 @endsection

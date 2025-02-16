@@ -66,133 +66,298 @@
         @include('inc.footer')
     </div>
     
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            let token = localStorage.getItem('token');
-            let userRole = localStorage.getItem('user_role');
-            let authLinks = document.getElementById('authLinks');
-    
-            if (token) {
-                if (userRole === 'admin') {
-                    authLinks.innerHTML = `
-                        <li class="nav-item">
-                            <a class="nav-link" href="/admin/dashboard"><i class="fas fa-user-shield"></i> Admin Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link logout-btn" href="javascript:void(0);" onclick="logout()">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </li>
-                    `;
-                } else {
-                    authLinks.innerHTML = `
-                        <li class="nav-item">
-                            <a class="nav-link" href="/cart">
-                                <i class="fas fa-shopping-cart"></i> Cart <span id="cart-count" class="badge bg-danger">0</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link logout-btn" href="javascript:void(0);" onclick="logout()">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </li>
-                    `;
-    
-                    fetchCartCount(); // ✅ Fetch cart count when the page loads
-                }
-            } else {
-                authLinks.innerHTML = `
-                    <li class="nav-item"><a class="nav-link" href="/login"><i class="fas fa-sign-in-alt"></i> Login</a></li>
-                `;
-                updateCartCount(0); // ✅ Show "0" if user is not logged in
-            }
-        });
-    
-        // ✅ Fetch Cart Count Function (Now Counts Unique Products)
-        function fetchCartCount() {
-            fetch('/get-cart')
-                .then(response => response.json())
-                .then(cartData => {
-                    let cartCount = cartData.length > 0 ? cartData[0].products.length : 0; // ✅ Count total unique products
-                    updateCartCount(cartCount);
-                })
-                .catch(error => console.error('Error fetching cart count:', error));
-        }
-    
-        // ✅ Function to Update Cart Count in Navbar
-        function updateCartCount(count) {
-            let cartCountSpan = document.getElementById('cart-count');
-            if (cartCountSpan) {
-                cartCountSpan.textContent = count;
-            }
-        }
-    
-        // ✅ Auto-update cart count when a product is added/removed
-        function updateCart() {
-            fetchCartCount(); // ✅ Refresh cart count without page reload
-        }
-    </script>
-       
-        
-    <script>
-        function logout() {
-            let csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    
-            fetch('/logout', {
-                method: 'POST',
-                credentials: 'include', // ✅ Ensure session cookies are included
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken, // ✅ Include CSRF Token
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({}) // ✅ Empty body
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => { throw new Error(err.message); });
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log(data.message); // ✅ Debugging message
-    
-                // ✅ Clear frontend localStorage
-                localStorage.removeItem('token');
-                localStorage.removeItem('user_role');
-    
-                // ✅ Redirect to login page
-                window.location.replace('/');
-            })
-            .catch(error => {
-                console.error('Logout failed:', error);
-                alert('Error logging out: ' + error.message);
-            });
-        }
-    </script>
-    
-    <script>
-        function checkAuth() {
-            fetch('/auth-log')
+{{-- <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        checkAuth(); // ✅ Check authentication when the page loads
+    });
+
+    function checkAuth() {
+        fetch('/auth-log')
             .then(response => response.json())
             .then(data => {
                 let authLinks = document.getElementById('authLinks');
-                
-                let loggedInUser = data.find(user => user.auth_id === "true");
-    
-                if (loggedInUser) {
-                    authLinks.innerHTML = `
-                        <li class="nav-item"><a class="nav-link" href="/cart">Cart</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#" onclick="logout()">Logout</a></li>
-                    `;
+                authLinks.innerHTML = ''; // Clear existing content
+
+                // ✅ Find the currently authenticated user (auth_token !== null)
+                let loggedInUsers = Object.values(data).filter(user => user.auth_token !== null);
+
+                if (loggedInUsers.length > 0) {
+                    let user = loggedInUsers[0]; // ✅ Assuming only one logged-in user per session
+                    let userName = user.user.name;
+                    let userRole = user.user.role;
+                    let authToken = user.auth_token; // ✅ Use auth_token
+
+                    // ✅ Store user authentication data in localStorage
+                    localStorage.setItem('auth_token', authToken);
+                    localStorage.setItem('user_role', userRole);
+                    localStorage.setItem('user', JSON.stringify(user.user));
+
+                    if (userRole === 'admin') {
+                        authLinks.innerHTML = `
+                            <li class="nav-item"><a class="nav-link" href="/admin/dashboard"><i class="fas fa-user-shield"></i> Admin Dashboard</a></li>
+                            <li class="nav-item"><a class="nav-link logout-btn" href="javascript:void(0);" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                        `;
+                    } else {
+                        authLinks.innerHTML = `
+                            <li class="nav-item"><a class="nav-link">Hello, ${userName}</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/cart"><i class="fas fa-shopping-cart"></i> Cart <span id="cart-count" class="badge bg-danger">0</span></a></li>
+                            <li class="nav-item"><a class="nav-link logout-btn" href="javascript:void(0);" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                        `;
+                        fetchCartCount(); // ✅ Fetch cart count when user is logged in
+                    }
                 } else {
-                    authLinks.innerHTML = `<a class="nav-link" href="/login">Login</a>`;
+                    // ✅ If no user is logged in, show the login link
+                    authLinks.innerHTML = `<li class="nav-item"><a class="nav-link" href="/login"><i class="fas fa-sign-in-alt"></i> Login</a></li>`;
+                    updateCartCount(0); // ✅ Reset cart count to 0
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user_role');
+                    localStorage.removeItem('user');
                 }
             })
             .catch(error => console.error('Error fetching auth status:', error));
+    }
+
+    // ✅ Fetch Cart Count Function
+    function fetchCartCount() {
+        fetch('/get-cart')
+            .then(response => response.json())
+            .then(cartData => {
+                let cartCount = cartData.length > 0 ? cartData[0].products.length : 0;
+                updateCartCount(cartCount);
+            })
+            .catch(error => console.error('Error fetching cart count:', error));
+    }
+
+    // ✅ Update Cart Count in Navbar
+    function updateCartCount(count) {
+        let cartCountSpan = document.getElementById('cart-count');
+        if (cartCountSpan) {
+            cartCountSpan.textContent = count;
         }
+    }
+
+    // ✅ Logout Function
+    function logout() {
+        let user = JSON.parse(localStorage.getItem('user'));
+        let userId = user ? user.id : null; 
+
+        if (!userId) {
+            console.error('User ID not found in localStorage.');
+            return;
+        }
+
+        let csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        fetch('/api/logout', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ user_id: userId }) 
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.message); });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(data.message);
+
+            // ✅ Clear localStorage
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_role');
+            localStorage.removeItem('user');
+
+            // ✅ Refresh UI and redirect
+            checkAuth();
+            window.location.replace('/login');
+        })
+        .catch(error => {
+            console.error('Logout failed:', error);
+            alert('Error logging out: ' + error.message);
+        });
+    }
+</script>
     
-        document.addEventListener("DOMContentLoaded", checkAuth);
-    </script>
+<script>
+    function logout() {
+        let user = JSON.parse(localStorage.getItem('user'));
+        let userId = user ? user.id : null; 
+
+        if (!userId) {
+            console.error('User ID not found in localStorage.');
+            return;
+        }
+
+        let csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        fetch('/api/logout', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ user_id: userId }) 
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.message); });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(data.message);
+
+            // ✅ Clear localStorage
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_role');
+            localStorage.removeItem('user');
+
+            // ✅ Refresh UI and redirect
+            checkAuth();
+            window.location.replace('/login');
+        })
+        .catch(error => {
+            console.error('Logout failed:', error);
+            alert('Error logging out: ' + error.message);
+        });
+    }
+</script> --}}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        checkAuth(); // ✅ Check authentication when the page loads
+    });
+
+    function checkAuth() {
+        fetch('/auth-log')
+            .then(response => response.json())
+            .then(data => {
+                let authLinks = document.getElementById('authLinks');
+                authLinks.innerHTML = ''; // Clear existing content
+
+                // ✅ Retrieve stored auth_token and user_id from localStorage
+                let storedAuthToken = localStorage.getItem('auth_token');
+                let storedUser = JSON.parse(localStorage.getItem('user'));
+
+                if (!storedAuthToken || !storedUser) {
+                    // ✅ If no valid session, reset UI and localStorage
+                    authLinks.innerHTML = `<li class="nav-item"><a class="nav-link" href="/login"><i class="fas fa-sign-in-alt"></i> Login</a></li>`;
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user_role');
+                    localStorage.removeItem('user');
+                    return;
+                }
+
+                // ✅ Find the user session from auth.json with matching auth_token and user_id
+                let activeUser = Object.values(data).find(user =>
+                    user.auth_token === storedAuthToken &&
+                    user.user.id === storedUser.id
+                );
+
+                if (activeUser) {
+                    let userName = activeUser.user.name;
+                    let userRole = activeUser.user.role;
+                    let authToken = activeUser.auth_token;
+
+                    // ✅ Update localStorage to ensure consistency
+                    localStorage.setItem('auth_token', authToken);
+                    localStorage.setItem('user_role', userRole);
+                    localStorage.setItem('user', JSON.stringify(activeUser.user));
+
+                    if (userRole === 'admin') {
+                        authLinks.innerHTML = `
+                            <li class="nav-item"><a class="nav-link" href="/admin/dashboard"><i class="fas fa-user-shield"></i> Admin Dashboard</a></li>
+                            <li class="nav-item"><a class="nav-link logout-btn" href="javascript:void(0);" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                        `;
+                    } else {
+                        authLinks.innerHTML = `
+                            <li class="nav-item"><a class="nav-link">Hello, ${userName}</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/cart"><i class="fas fa-shopping-cart"></i> Cart <span id="cart-count" class="badge bg-danger">0</span></a></li>
+                            <li class="nav-item"><a class="nav-link logout-btn" href="javascript:void(0);" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                        `;
+                        fetchCartCount(); // ✅ Fetch cart count when user is logged in
+                    }
+                } else {
+                    // ✅ No valid session found, reset UI and clear localStorage
+                    authLinks.innerHTML = `<li class="nav-item"><a class="nav-link" href="/login"><i class="fas fa-sign-in-alt"></i> Login</a></li>`;
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user_role');
+                    localStorage.removeItem('user');
+                }
+            })
+            .catch(error => console.error('Error fetching auth status:', error));
+    }
+
+    // ✅ Fetch Cart Count Function
+    function fetchCartCount() {
+        fetch('/get-cart')
+            .then(response => response.json())
+            .then(cartData => {
+                let cartCount = cartData.length > 0 ? cartData[0].products.length : 0;
+                updateCartCount(cartCount);
+            })
+            .catch(error => console.error('Error fetching cart count:', error));
+    }
+
+    // ✅ Update Cart Count in Navbar
+    function updateCartCount(count) {
+        let cartCountSpan = document.getElementById('cart-count');
+        if (cartCountSpan) {
+            cartCountSpan.textContent = count;
+        }
+    }
+
+    // ✅ Logout Function
+    function logout() {
+        let user = JSON.parse(localStorage.getItem('user'));
+        let userId = user ? user.id : null; 
+
+        if (!userId) {
+            console.error('User ID not found in localStorage.');
+            return;
+        }
+
+        let csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        fetch('/api/logout', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ user_id: userId }) 
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.message); });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(data.message);
+
+            // ✅ Clear localStorage
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_role');
+            localStorage.removeItem('user');
+
+            // ✅ Refresh UI and redirect
+            checkAuth();
+            window.location.replace('/login');
+        })
+        .catch(error => {
+            console.error('Logout failed:', error);
+            alert('Error logging out: ' + error.message);
+        });
+    }
+</script>
+
+    
     
         
     <!-- ✅ Add jQuery & Bootstrap -->
