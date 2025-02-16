@@ -60,92 +60,177 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 
 <script>
+    // $(document).ready(function () {
+    //     let csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    //     let user = JSON.parse(localStorage.getItem("user"));
+    //     let cartId = localStorage.getItem("cart_id");
+    //     let guestId = localStorage.getItem("guest_id");
+    //     let guestCartId = localStorage.getItem("guest_cart_id");
+
+    //     if (user) {
+    //         if (!cartId) {
+    //             cartId = null; // The backend will generate it
+    //             localStorage.setItem("cart_id", cartId);
+    //         }
+    //     } else {
+    //         if (!guestId) {
+    //             guestId = generateGuestId();
+    //             localStorage.setItem("guest_id", guestId);
+    //         }
+    //         if (!guestCartId) {
+    //             guestCartId = null; // The backend will generate it
+    //             localStorage.setItem("guest_cart_id", guestCartId);
+    //         }
+    //     }
+
+    //     function generateGuestId() {
+    //         return "guest_" + Date.now() + "_" + Math.random().toString(36).substr(2, 6);
+    //     }
+
+    //     function getAuthHeaders() {
+    //         let headers = { 
+    //             "Content-Type": "application/json", 
+    //             "X-CSRF-TOKEN": csrfToken 
+    //         };
+    //         if (cartId) {
+    //             headers["X-Cart-ID"] = cartId;
+    //             headers["X-User-ID"] = user.id;
+    //         } else if (guestCartId) {
+    //             headers["X-Cart-ID"] = guestCartId;
+    //             headers["X-User-ID"] = guestId;
+    //         }
+    //         return headers;
+    //     }
+
+    //     $(".add-to-cart").click(function () {
+    //         let productId = $(this).attr("data-id");
+
+    //         $.ajax({
+    //             url: "/add-to-cart/" + productId,
+    //             type: "POST",
+    //             headers: getAuthHeaders(),
+    //             success: function (response) {
+    //                 alert(response.message);
+
+    //                 // ✅ Store `cart_id` in localStorage for users and guests
+    //                 if (user && response.cart_id) {
+    //                     localStorage.setItem("cart_id", response.cart_id);
+    //                 } else if (!user && response.cart_id) {
+    //                     localStorage.setItem("guest_cart_id", response.cart_id);
+    //                 }
+    //             },
+    //             error: function (xhr) {
+    //                 alert("Error: " + xhr.responseText);
+    //             }
+    //         });
+    //     });
+
+    //     $(".buy-now").click(function () {
+    //         let productId = $(this).data("id");
+
+    //         $.ajax({
+    //             url: "/add-to-cart/" + productId,
+    //             type: "POST",
+    //             headers: getAuthHeaders(),
+    //             success: function (response) {
+    //                 if (response.message) {
+    //                     console.log(response.message);
+    //                     window.location.href = "/cart";
+    //                 } else {
+    //                     alert("Error adding product to cart!");
+    //                 }
+    //             },
+    //             error: function (xhr) {
+    //                 alert("Error: " + xhr.responseText);
+    //             }
+    //         });
+    //     });
+    // });
+
     $(document).ready(function () {
-        let csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        let user = JSON.parse(localStorage.getItem("user"));
-        let cartId = localStorage.getItem("cart_id");
-        let guestId = localStorage.getItem("guest_id");
-        let guestCartId = localStorage.getItem("guest_cart_id");
+    let csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    let user = JSON.parse(localStorage.getItem("user"));
+    let cartId = localStorage.getItem("cart_id");
+    let guestId = localStorage.getItem("guest_id");
+    let guestCartId = localStorage.getItem("guest_cart_id");
+
+    // ✅ Ensure guest users have a unique guest ID
+    if (!user) {
+        if (!guestId) {
+            guestId = generateGuestId();
+            localStorage.setItem("guest_id", guestId);
+        }
+        if (!guestCartId) {
+            guestCartId = null; // The backend will generate it
+            localStorage.setItem("guest_cart_id", guestCartId);
+        }
+    }
+
+    function generateGuestId() {
+        return "guest_" + Date.now() + "_" + Math.random().toString(36).substr(2, 6);
+    }
+
+    function getAuthHeaders() {
+        let headers = { 
+            "Content-Type": "application/json", 
+            "X-CSRF-TOKEN": csrfToken 
+        };
 
         if (user) {
-            if (!cartId) {
-                cartId = null; // The backend will generate it
-                localStorage.setItem("cart_id", cartId);
-            }
-        } else {
-            if (!guestId) {
-                guestId = generateGuestId();
-                localStorage.setItem("guest_id", guestId);
-            }
-            if (!guestCartId) {
-                guestCartId = null; // The backend will generate it
-                localStorage.setItem("guest_cart_id", guestCartId);
-            }
+            headers["X-Cart-ID"] = cartId || "";
+            headers["X-User-ID"] = user.id;
+        } else if (guestId) {
+            headers["X-Cart-ID"] = guestCartId || "";
+            headers["X-User-ID"] = guestId;
         }
 
-        function generateGuestId() {
-            return "guest_" + Date.now() + "_" + Math.random().toString(36).substr(2, 6);
-        }
+        return headers;
+    }
 
-        function getAuthHeaders() {
-            let headers = { 
-                "Content-Type": "application/json", 
-                "X-CSRF-TOKEN": csrfToken 
-            };
-            if (cartId) {
-                headers["X-Cart-ID"] = cartId;
-                headers["X-User-ID"] = user.id;
-            } else if (guestCartId) {
-                headers["X-Cart-ID"] = guestCartId;
-                headers["X-User-ID"] = guestId;
-            }
-            return headers;
-        }
+    $(".add-to-cart").click(function () {
+        let productId = $(this).attr("data-id");
 
-        $(".add-to-cart").click(function () {
-            let productId = $(this).attr("data-id");
+        $.ajax({
+            url: "/add-to-cart/" + productId,
+            type: "POST",
+            headers: getAuthHeaders(),
+            success: function (response) {
+                alert(response.message);
 
-            $.ajax({
-                url: "/add-to-cart/" + productId,
-                type: "POST",
-                headers: getAuthHeaders(),
-                success: function (response) {
-                    alert(response.message);
-
-                    // ✅ Store `cart_id` in localStorage for users and guests
-                    if (user && response.cart_id) {
-                        localStorage.setItem("cart_id", response.cart_id);
-                    } else if (!user && response.cart_id) {
-                        localStorage.setItem("guest_cart_id", response.cart_id);
-                    }
-                },
-                error: function (xhr) {
-                    alert("Error: " + xhr.responseText);
+                if (user && response.cart_id) {
+                    localStorage.setItem("cart_id", response.cart_id);
+                } else if (!user && response.cart_id) {
+                    localStorage.setItem("guest_cart_id", response.cart_id);
                 }
-            });
-        });
-
-        $(".buy-now").click(function () {
-            let productId = $(this).data("id");
-
-            $.ajax({
-                url: "/add-to-cart/" + productId,
-                type: "POST",
-                headers: getAuthHeaders(),
-                success: function (response) {
-                    if (response.message) {
-                        console.log(response.message);
-                        window.location.href = "/cart";
-                    } else {
-                        alert("Error adding product to cart!");
-                    }
-                },
-                error: function (xhr) {
-                    alert("Error: " + xhr.responseText);
-                }
-            });
+            },
+            error: function (xhr) {
+                alert("Error: " + xhr.responseText);
+            }
         });
     });
+
+    $(".buy-now").click(function () {
+        let productId = $(this).data("id");
+
+        $.ajax({
+            url: "/add-to-cart/" + productId,
+            type: "POST",
+            headers: getAuthHeaders(),
+            success: function (response) {
+                if (response.message) {
+                    console.log(response.message);
+                    window.location.href = "/cart";
+                } else {
+                    alert("Error adding product to cart!");
+                }
+            },
+            error: function (xhr) {
+                alert("Error: " + xhr.responseText);
+            }
+        });
+    });
+});
+
 </script>
 
 

@@ -28,8 +28,9 @@
 
     <!-- ✅ Empty Cart Message -->
     <div id="empty-cart-message" style="display: none;">
-        <h4>Your cart is empty.</h4>
-        <a href="/" class="btn btn-primary">Continue Shopping</a>
+        @include('inc/empty_cart')
+        {{-- <h4>Your cart is empty.</h4>
+        <a href="/" class="btn btn-primary">Continue Shopping</a> --}}
     </div>
 
     <!-- ✅ Cart Summary -->

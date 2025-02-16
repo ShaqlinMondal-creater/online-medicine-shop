@@ -272,13 +272,15 @@
                     if (userRole === 'admin') {
                         authLinks.innerHTML = `
                             <li class="nav-item"><a class="nav-link" href="/admin/dashboard"><i class="fas fa-user-shield"></i> Admin Dashboard</a></li>
-                            <li class="nav-item"><a class="nav-link logout-btn" href="javascript:void(0);" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                            <li class="nav-item"><a class="nav-link logout-btn" href="javascript:void(0);" onclick="logout()"><i class="bi bi-arrow-right-circle"></i> Logout</a></li>
                         `;
                     } else {
                         authLinks.innerHTML = `
-                            <li class="nav-item"><a class="nav-link" href="/profile/${userId}">Hello, ${userName}</a></li>
-                            <li class="nav-item"><a class="nav-link" href="/cart"><i class="fas fa-shopping-cart"></i> Cart <span id="cart-count" class="badge bg-danger">0</span></a></li>
-                            <li class="nav-item"><a class="nav-link logout-btn" href="javascript:void(0);" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/profile/${userId}">${userName.split(" ")[0]}</a> 
+                            </li>
+                            <li class="nav-item"><a class="nav-link" href="/cart"><i class="bi bi-bag-check-fill me-1"></i><span id="cart-count" class="badge bg-danger">0</span></a></li>
+                            <li class="nav-item"><a class="nav-link logout-btn" href="javascript:void(0);" onclick="logout()"><i class="bi bi-arrow-right-circle"></i> Logout</a></li>
                         `;
                         fetchCartCount(); // ✅ Fetch cart count when user is logged in
                     }
